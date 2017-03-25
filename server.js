@@ -51,7 +51,8 @@ let questions = [
 ];
 let slides = [
     {}
-]
+];
+let comments = [];
 uid = 0;
 questions.forEach(function(question, index) {
     question.id = uid++;
@@ -206,6 +207,14 @@ function findUsername(username, answer) {
     return selected_username_index;
 }
 io.sockets.on('connection', function(socket) {
+    socket.on('comment', function(comment_data) {
+        comments.push(comment_data);
+        io.sockets.emit('on_new_comment', comments);
+    });
+    socket.on('stop_question', function(partial_question){
+        question = findQuestion(partial_question.question_id);
+        io.sockets.emit('hide_question', question);
+    });
     socket.on('start_question', function(partial_question) {
         question = findQuestion(partial_question.question_id);
         if(question == null) {
