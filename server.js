@@ -206,7 +206,7 @@ function findUsername(username, answer) {
     return selected_username_index;
 }
 io.sockets.on('connection', function(socket) {
-    socket.on('start_question', function(partial_question)) {
+    socket.on('start_question', function(partial_question) {
         question = findQuestion(partial_question.question_id);
         if(question == null) {
             console.log(`question ${partial_question_id} was null`);
