@@ -247,7 +247,7 @@ io.sockets.on('connection', function(socket) {
             }
         }
         if (should_emit) {
-            socket.emit('answer_update', {
+            io.sockets.emit('answer_update', {
                 question_id: question.id,
                 answer: {id: answer.id, poll_count: answer.poll_count}
             });
