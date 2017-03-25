@@ -1,0 +1,30 @@
+{
+  "name": "twitchedu-backend",
+  "version": "1.0.0",
+  "description": "Revolutionise Education",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lketchup/twitchedu-backend.git"
+  },
+  "keywords": [
+    "hackamon",
+    "education",
+    "lecture"
+  ],
+  "author": "pineapple_bae",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lketchup/twitchedu-backend/issues"
+  },
+  "homepage": "https://github.com/lketchup/twitchedu-backend#readme",
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "cors": "^2.8.1",
+    "express": "^4.15.2",
+    "socket.io": "^1.0.0"
+  }
+}
