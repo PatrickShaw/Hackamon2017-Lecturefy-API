@@ -207,21 +207,55 @@ function findUsername(username, answer) {
     return selected_username_index;
 }
 io.sockets.on('connection', function(socket) {
+    socket.on('start_comment', function() {
+        try {
+            io.sockets.emit('on_new_comment', comments);
+        } catch(ex) {
+            console.log(ex);
+        }
+    });
     socket.on('comment', function(comment_data) {
-        comments.push(comment_data);
-        io.sockets.emit('on_new_comment', comments);
+        try {
+            if (comment_data == null) {
+                console.log('comment was null');
+                io.sockets.emit('exception', 'Comment was null');
+                return;
+            }
+            if (comment_data.username == null) {
+                console.log(`username is null: ${comment_data}`);
+                io.sockets.emit('exception', 'Username was null');
+                return;
+            }
+            if (comment_data.text == null) {
+                console.log(`text is null: ${comment_data}`);
+                io.sockets.emit('exception', 'Text was null')
+                return;
+            }
+            comments.push(comment_data);
+            io.sockets.emit('on_new_comment', comments);
+        } catch(ex) {
+            console.log(ex);
+        }
     });
     socket.on('stop_question', function(partial_question){
-        question = findQuestion(partial_question.question_id);
-        io.sockets.emit('hide_question', question);
+        try {
+            question = findQuestion(partial_question.question_id);
+            io.sockets.emit('hide_question', question);
+        } catch(ex) {
+            console.log(ex);
+        }
     });
     socket.on('start_question', function(partial_question) {
-        question = findQuestion(partial_question.question_id);
-        if(question == null) {
-            console.log(`question ${partial_question_id} was null`);
-            return;
+        try {
+            question = findQuestion(partial_question.question_id);
+            if (question == null) {
+                console.log(`question ${partial_question_id} was null`);
+                return;
+            }
+            io.sockets.emit('show_question', question);
+        } catch(ex) {
+            console.log(ex);
         }
-        io.sockets.emit('show_question', question);
     });
     socket.on('onSlideIndexChanged', function(partial_slide_information){
         try {
@@ -233,36 +267,40 @@ io.sockets.on('connection', function(socket) {
         }
     });
     socket.on('answer_question', function (data) {
-        question = findQuestion(data.question_id);
-        if (question == null) {
-            socket.emit('exception', {errorMessage: "Question was null"});
-            console.log(`Question ${data.question_id} does not exist`);
-            return;
-        }
-        question.answers.forEach((answer) => {
-            let selected_username_index = findUsername(data.username, answer);
-        let should_emit = false;
-        if (answer.id == data.answer_id) {
-            if (selected_username_index == null) {
-                answer.poll_count += 1;
-                answer.answer_audit.push({username: data.username});
-                should_emit = true;
+        try {
+            question = findQuestion(data.question_id);
+            if (question == null) {
+                socket.emit('exception', {errorMessage: "Question was null"});
+                console.log(`Question ${data.question_id} does not exist`);
+                return;
             }
-        } else {
-            if (selected_username_index != null) {
-                answer.poll_count -= 1;
-                answer.answer_audit.splice(selected_username_index, 1);
-                should_emit = true;
+            question.answers.forEach((answer) = > {
+                let selected_username_index = findUsername(data.username, answer);
+            let should_emit = false;
+            if (answer.id == data.answer_id) {
+                if (selected_username_index == null) {
+                    answer.poll_count += 1;
+                    answer.answer_audit.push({username: data.username});
+                    should_emit = true;
+                }
+            } else {
+                if (selected_username_index != null) {
+                    answer.poll_count -= 1;
+                    answer.answer_audit.splice(selected_username_index, 1);
+                    should_emit = true;
+                }
             }
+            if (should_emit) {
+                io.sockets.emit('answer_update', {
+                    question_id: question.id,
+                    answer: {id: answer.id, poll_count: answer.poll_count}
+                });
+            }
+        })
+            ;
+        } catch(ex) {
+            console.log(ex);
         }
-        if (should_emit) {
-            io.sockets.emit('answer_update', {
-                question_id: question.id,
-                answer: {id: answer.id, poll_count: answer.poll_count}
-            });
-        }
-    })
-        ;
     });
 });
 
