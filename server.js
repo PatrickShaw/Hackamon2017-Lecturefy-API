@@ -66,8 +66,8 @@ app.post('/lessons/:lesson/upload', function(req, res) {
     let len_pages = parseInt(pdf_info["Pages"]);
     let promises = [];
     for (let i = 0; i < len_pages; i++) {
-       // TODO: Implement filesystem.
-       if (fs.existsSync("/Users/David/Desktop/hackamon2017/backend/twitchedu-backend/data/local-tmp/dsquire-" + i + ".png")) {
+
+       if (fs.existsSync("./data/local-tmp/dsquire-" + i + ".png")) {
          console.log("Already exists: " + "dsquire-" + i  + ".png");
        } else {
          // Promise.
@@ -110,10 +110,10 @@ app.post('/lessons/:lesson/upload', function(req, res) {
             if (count >= len_pages) {
               slide_urls.sort(png_slide_url_comparison);
               console.log("Slides: " + slide_urls);
-              room_data[lesson_id].slides = slide_urls;
+              lesson_data[lesson_id] = {slides: slide_urls};
               res.send("Uploaded.")
             }
-          });        // After this is async.
+          });  // After this is async.
         });
       });
     });
