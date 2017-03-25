@@ -16,7 +16,7 @@ app.post('/lessons', function(req, res) {
   res.send(uid);
 });
 
-app.post('/:lesson/upload', funtion(req, res) {
+app.post('/lessons/:lesson/upload', funtion(req, res) {
   var lesson = req.params.lesson; // lesson_data[lesson].slides = ["../1.png", "../2.png"];
 });
 
