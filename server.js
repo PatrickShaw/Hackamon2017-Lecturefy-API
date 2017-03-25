@@ -3,6 +3,7 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
 var lessons = [];
+var lesson_data = {};
 
 app.get('/lessons', function(req, res) {
   res.send(JSON.stringify(lessons));
@@ -15,6 +16,10 @@ app.post('/lessons', function(req, res) {
   res.send(uid);
 });
 
+app.post('/:lesson/upload', funtion(req, res) {
+  var lesson = req.params.lesson; // lesson_data[lesson].slides = ["../1.png", "../2.png"];
+});
+
 io.sockets.on('connection', function(socket) {
   socket.on('create', function(room) {
     socket.join(room);
@@ -22,7 +27,7 @@ io.sockets.on('connection', function(socket) {
 });
 
 http.listen(9001, function() {
-  console.log('Listening on: localhost:9001');
+  console.log('Listening on: http://localhost:9001/');
 });
 
 function generateUID() {
