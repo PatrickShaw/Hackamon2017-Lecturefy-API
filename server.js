@@ -206,6 +206,9 @@ function findUsername(username, answer) {
     })
     return selected_username_index;
 }
+function partial_answer_information(answer){
+    return{id: answer.id, poll_count: answer.poll_count};
+}
 io.sockets.on('connection', function(socket) {
     socket.on('start_comment', function() {
         try {
@@ -266,21 +269,39 @@ io.sockets.on('connection', function(socket) {
             console.log(err);
         }
     });
-    socket.on('answer_question', function (data) {
-        try {
-            question = findQuestion(data.question_id);
+    socket.on('get_question', function(partial_question_data) {
+        try{
+            question = findQuestion(partial_question_data.question_id);
             if (question == null) {
                 socket.emit('exception', {errorMessage: "Question was null"});
-                console.log(`Question ${data.question_id} does not exist`);
+                console.log(`Question ${partial_question_data.question_id} does not exist`);
                 return;
             }
-            question.answers.forEach((answer) = > {
-                let selected_username_index = findUsername(data.username, answer);
+            question.answers.forEach((answer)=>{
+                socket.emit('answer_update', {
+                question_id: question.id,
+                answer: partial_answer_information(answer),
+            });
+            })
+        } catch(ex) {
+            console.log(ex);
+        }
+    })
+    socket.on('answer_question', function (selected_answer) {
+        try {
+            question = findQuestion(selected_answer.question_id);
+            if (question == null) {
+                socket.emit('exception', {errorMessage: "Question was null"});
+                console.log(`Question ${selected_answer.question_id} does not exist`);
+                return;
+            }
+            question.answers.forEach((answer) => {
+                let selected_username_index = findUsername(selected_answer.username, answer);
             let should_emit = false;
-            if (answer.id == data.answer_id) {
+            if (answer.id == selected_answer.answer_id) {
                 if (selected_username_index == null) {
                     answer.poll_count += 1;
-                    answer.answer_audit.push({username: data.username});
+                    answer.answer_audit.push({username: selected_answer.username});
                     should_emit = true;
                 }
             } else {
@@ -293,7 +314,7 @@ io.sockets.on('connection', function(socket) {
             if (should_emit) {
                 io.sockets.emit('answer_update', {
                     question_id: question.id,
-                    answer: {id: answer.id, poll_count: answer.poll_count}
+                    answer: partial_answer_information(answer),
                 });
             }
         })
