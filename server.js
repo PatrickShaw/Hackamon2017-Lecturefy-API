@@ -15,12 +15,36 @@ let lessons = [];
 let lesson_data = {};
 let questions = [
     {
+        id: 0, // PLEASE NOTE THAT THE IDS ARE REGENERATED SOMEWHERE ELSE
+        description: "Do you think Pineapple Bae should win Hackamon? ;)",
         answers: [
             {
+                id: 1,
                 description: "yes"
             },
             {
+                id: 2,
                 description: "definately yes",
+            }
+        ],
+        correct_answer: 2,
+    },
+    {
+        id: 3,
+        description: "What is our team name?",
+        answers: [
+            {
+                id: 4,
+                description: "Pineapple Bae"
+            },
+            {
+                id: 5,
+                description: "Pineapple Bay"
+            },
+            {
+                id: 6,
+                description: "Pineapples Under the Sea",
+                explanation: "That was our previous team name!"
             }
         ]
     }
@@ -70,7 +94,9 @@ function png_slide_url_comparison(a, b) {
   // a must be equal to b
   return 0;
 }
+app.get('/questions', function(req, res) {
 
+})
 app.post('/lessons/:lesson/upload', function(req, res) {
   let lesson_id = req.params.lesson; // lesson_data[lesson].slides = ["../1.png", "../2.png"];
   let slide_urls = [];
@@ -180,9 +206,21 @@ function findUsername(username, answer) {
     return selected_username_index;
 }
 io.sockets.on('connection', function(socket) {
+    socket.on('start_question', function(partial_question)) {
+        question = findQuestion(partial_question.id);
+        if(question == null) {
+            console.log(`question ${partial_question_id} was null`);
+            return;
+        }
+        io.sockets.emit('show_question', question);
+    }
     socket.on('onSlideIndexChanged', function(partial_slide_information){
-        if(partial_slide_information.is_presenter) {
-            io.sockets.emit('onPresenterSlideIndexChanged', {slide_index: partial_slide_information.slide_index});
+        try {
+            if (partial_slide_information.is_presenter) {
+                io.sockets.emit('onPresenterSlideIndexChanged', {slide_index: partial_slide_information.slide_index});
+            }
+        } catch(err) {
+            console.log(err);
         }
     });
     socket.on('answer_question', function (data) {
