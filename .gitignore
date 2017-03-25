@@ -1,1 +1,11 @@
 node_modules
+data
+.idea
+.workspace
+notes
+*.xml
+*.pdf
+./idea
+/idea
+/.idea
+.xml
