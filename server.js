@@ -213,7 +213,7 @@ io.sockets.on('connection', function(socket) {
             return;
         }
         io.sockets.emit('show_question', question);
-    }
+    });
     socket.on('onSlideIndexChanged', function(partial_slide_information){
         try {
             if (partial_slide_information.is_presenter) {
