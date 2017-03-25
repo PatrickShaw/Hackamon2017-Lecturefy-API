@@ -120,9 +120,9 @@ app.post('/lessons/:lesson/upload', function(req, res) {
 });
 
 io.sockets.on('connection', function(socket) {
-  socket.on('create', function(room) {
-    socket.join(room);
-  });
+  socket.on((json)=>{
+    socket.emit({value: json.value + 1});
+  })
 });
 
 http.listen(9001, function() {
