@@ -1,6 +1,6 @@
 let app = require('express')();
 let http = require('http').Server(app);
-let io = require('socket.io')(http);
+let io = require('socket.io').listen(1337);
 let PDFImage = require("pdf-image").PDFImage;
 let fs = require('fs');
 let path = require('path');
@@ -11,10 +11,38 @@ AWS.config.loadFromPath('./data/config.json');
 
 let BUCKET_NAME = "hackamon-pineapple";
 
-
 let lessons = [];
 let lesson_data = {};
-
+let questions = [
+    {
+        answers: [
+            {
+                description: "yes"
+            },
+            {
+                description: "definately yes",
+            }
+        ]
+    }
+];
+let slides = [
+    {}
+]
+uid = 0;
+questions.forEach(function(question, index) {
+    question.id = uid++;
+    question.answers.forEach(function(answer, answer_index) {
+        answer.id = uid++;
+        answer.poll_count = 0;
+        answer.answer_audit = [];
+        console.log(answer);
+    });
+    console.log(question);
+});
+slides.forEach(function(slide, index) {
+    slide.id = uid++;
+    slide.presenter_slide_index = 0;
+});
 app.get('/lessons', function(req, res) {
   res.send(JSON.stringify(lessons));
 });
@@ -118,11 +146,77 @@ app.post('/lessons/:lesson/upload', function(req, res) {
       });
     });
 });
-
+function findQuestion(searched_id) {
+    let selected_question = null;
+    questions.some((question)=>{
+        let found_question = question.id == searched_id;
+        if (found_question) {
+            selected_question = question;
+        }
+        return found_question;
+    });
+    return selected_question;
+}
+function findAnswer(searched_id, question) {
+    let selected_answer = null;
+    question.answers.some((answer)=>{
+        let found_answer = answer.id == searched_id;
+        if(found_answer) {
+            selected_answer = answer;
+        }
+        return found_answer;
+    })
+    return selected_answer;
+}
+function findUsername(username, answer) {
+    let selected_username_index = null;
+    answer.answer_audit.some((audit, index) => {
+        let found_username = audit.username == username;
+        if(found_username) {
+            selected_username_index = index;
+        }
+        return found_username;
+    })
+    return selected_username_index;
+}
 io.sockets.on('connection', function(socket) {
-  socket.on((json)=>{
-    socket.emit({value: json.value + 1});
-  })
+    socket.on('onSlideIndexChanged', function(partial_slide_information){
+        if(partial_slide_information.is_presenter) {
+            io.sockets.emit('onPresenterSlideIndexChanged', {slide_index: partial_slide_information.slide_index});
+        }
+    });
+    socket.on('answer_question', function (data) {
+        question = findQuestion(data.question_id);
+        if (question == null) {
+            socket.emit('exception', {errorMessage: "Question was null"});
+            console.log(`Question ${data.question_id} does not exist`);
+            return;
+        }
+        question.answers.forEach((answer) => {
+            let selected_username_index = findUsername(data.username, answer);
+        let should_emit = false;
+        if (answer.id == data.answer_id) {
+            if (selected_username_index == null) {
+                answer.poll_count += 1;
+                answer.answer_audit.push({username: data.username});
+                should_emit = true;
+            }
+        } else {
+            if (selected_username_index != null) {
+                answer.poll_count -= 1;
+                answer.answer_audit.splice(selected_username_index, 1);
+                should_emit = true;
+            }
+        }
+        if (should_emit) {
+            socket.emit('answer_update', {
+                question_id: question.id,
+                answer: {id: answer.id, poll_count: answer.poll_count}
+            });
+        }
+    })
+        ;
+    });
 });
 
 http.listen(9001, function() {
