@@ -10,9 +10,10 @@ let AWS = require('aws-sdk');
 AWS.config.loadFromPath('./data/config.json');
 
 let BUCKET_NAME = "hackamon-pineapple";
-
+let slide_index = 0;
 let lessons = [];
 let lesson_data = {};
+let show_comments = false;
 let questions = [
     {
         id: 0, // PLEASE NOTE THAT THE IDS ARE REGENERATED SOMEWHERE ELSE
@@ -27,6 +28,7 @@ let questions = [
                 description: "definately yes",
             }
         ],
+        show_question: false,
         correct_answer: 2,
     },
     {
@@ -46,7 +48,8 @@ let questions = [
                 description: "Pineapples Under the Sea",
                 explanation: "That was our previous team name!"
             }
-        ]
+        ],
+        show_question: false
     }
 ];
 let slides = [
@@ -209,7 +212,29 @@ function findUsername(username, answer) {
 function partial_answer_information(answer){
     return{id: answer.id, poll_count: answer.poll_count};
 }
+function emitComments() {
+    io.sockets.emit('on_new_comment', comments);
+}
+function onChangeComments(show) {
+    show_comments = show;
+    io.sockets.emit('on_comments_visibility', {show_comments: show_comments});
+}
 io.sockets.on('connection', function(socket) {
+    socket.on('show_comments', function(comments_data) {
+        try {
+            onChangeComments(true);
+            emitComments();
+        } catch(ex) {
+            console.log(ex);
+        }
+    });
+    socket.on('hide_comments', function(comments_data){
+        try {
+            onChangeComments(false);
+        } catch(ex) {
+            console.log(ex);
+        }
+    });
     socket.on('start_comment', function() {
         try {
             io.sockets.emit('on_new_comment', comments);
@@ -235,7 +260,7 @@ io.sockets.on('connection', function(socket) {
                 return;
             }
             comments.push(comment_data);
-            io.sockets.emit('on_new_comment', comments);
+            emitComments();
         } catch(ex) {
             console.log(ex);
         }
@@ -243,6 +268,16 @@ io.sockets.on('connection', function(socket) {
     socket.on('stop_question', function(partial_question){
         try {
             question = findQuestion(partial_question.question_id);
+            if(question == null) {
+                console.log(`question ${partial_question.questiond_id} was null`);
+                return;
+            }
+            question.show_question = false;
+            question.answers.forEach(function(answer) {
+                answer.poll_count = 0;
+                answer.answer_audit = [];
+                io.sockets.emit('answer_update', {question_id: question.id, answer: partial_answer_information(answer)});
+            });
             io.sockets.emit('hide_question', question);
         } catch(ex) {
             console.log(ex);
@@ -255,14 +290,23 @@ io.sockets.on('connection', function(socket) {
                 console.log(`question ${partial_question_id} was null`);
                 return;
             }
+            question.show_question = true;
             io.sockets.emit('show_question', question);
         } catch(ex) {
             console.log(ex);
         }
     });
+    socket.on('get_slide_index', function(slide_information){
+        try {
+            socket.emit('onPresenterSlideIndexChanged',{slide_index: slide_index});
+        } catch(err) {
+            console.log(err);
+        }
+    });
     socket.on('onSlideIndexChanged', function(partial_slide_information){
         try {
             if (partial_slide_information.is_presenter) {
+                slide_index = partial_slide_information.slide_index;
                 io.sockets.emit('onPresenterSlideIndexChanged', {slide_index: partial_slide_information.slide_index});
             }
         } catch(err) {
@@ -277,12 +321,16 @@ io.sockets.on('connection', function(socket) {
                 console.log(`Question ${partial_question_data.question_id} does not exist`);
                 return;
             }
-            question.answers.forEach((answer)=>{
+            question.answers.forEach((answer)=> {
                 socket.emit('answer_update', {
                 question_id: question.id,
                 answer: partial_answer_information(answer),
             });
-            })
+            if (question.show_question) {
+                socket.emit('show_question', question);
+            }
+            onChangeComments(show_comments);
+        });
         } catch(ex) {
             console.log(ex);
         }
