@@ -210,7 +210,7 @@ function findUsername(username, answer) {
     return selected_username_index;
 }
 function partial_answer_information(answer){
-    return{id: answer.id, poll_count: answer.poll_count};
+    return{id: answer.id, poll_count: answer.poll_count, audits: answer.answer_audit};
 }
 function emitComments() {
     io.sockets.emit('on_new_comment', comments);
@@ -237,7 +237,7 @@ io.sockets.on('connection', function(socket) {
     });
     socket.on('start_comment', function() {
         try {
-            io.sockets.emit('on_new_comment', comments);
+            emitComments();
         } catch(ex) {
             console.log(ex);
         }
